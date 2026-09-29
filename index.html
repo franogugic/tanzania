@@ -75,6 +75,32 @@
     letter-spacing: .5em; text-indent: .5em;
     color: var(--glow); opacity: .9;
   }
+  /* ---------- LOADER (5 s, dok se video učita) ---------- */
+  #loader {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+    padding-inline: 16px;
+    background: #000; color: #fff1a8;
+    transition: opacity .6s ease;
+  }
+  #loader.gone { opacity: 0; pointer-events: none; }
+  #loader p {
+    margin: 0; font-family: var(--body); font-weight: 500;
+    font-size: clamp(1.3rem, 5vw, 2.2rem); letter-spacing: .08em;
+    text-shadow: 0 0 18px rgba(252,209,22,.45);
+  }
+  .dots { display: flex; gap: 12px; }
+  .dots span {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fcd116; box-shadow: 0 0 12px rgba(252,209,22,.7);
+    animation: hop .9s ease-in-out infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: .15s; }
+  .dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes hop { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-18px); } }
+  /* dok traje loader, uvodna animacija čeka */
+  body.loading .welcome, body.loading .welcome b span { animation-play-state: paused; }
+
   .welcome b span { display: inline-block; opacity: 0; transform: translateY(40px) scale(.6); animation: letter .5s cubic-bezier(.2,.9,.3,1.4) forwards; }
   @keyframes letter { to { opacity: 1; transform: none; } }
   @keyframes welcome {
@@ -209,6 +235,12 @@
 </head>
 <body>
 
+<div id="loader" role="status">
+  <p>Može ovde...</p>
+  <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+</div>
+<script>document.body.classList.add('loading');</script>
+
 <div id="intro" title="Klikni za preskok">
   <div class="introbg"></div>
   <video src="media/intro.mp4" autoplay muted playsinline loop preload="auto"></video>
@@ -307,14 +339,22 @@
     intro.remove();
   }
 
-  if (reduce) {
-    finish();
-  } else {
+  // uvod kreće tek nakon loadera od 5 s, video tada kreće ispočetka
+  const LOADER_MS = 5000;
+  const loader = document.getElementById('loader');
+  const video = intro.querySelector('video');
+  function begin() {
+    loader.classList.add('gone');
+    setTimeout(() => loader.remove(), 700);
+    document.body.classList.remove('loading');
+    if (video) { try { video.currentTime = 0; video.play().catch(() => {}); } catch (e) {} }
+    if (reduce) { finish(); return; }
     timers.push(setTimeout(startTz, 1700));
     timers.push(setTimeout(settle, 3800));
     timers.push(setTimeout(fly, 4500));
     intro.addEventListener('click', finish);
   }
+  setTimeout(begin, LOADER_MS);
 
   /* ---------- COUNTDOWN ---------- */
   const el = Object.fromEntries(['d', 'h', 'm', 's'].map(k => [k, document.getElementById(k)]));
